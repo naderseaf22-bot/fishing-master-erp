@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     tailwindcss(),
@@ -14,15 +15,16 @@ export default defineConfig({
         name: 'Fishing Master ERP',
         short_name: 'FishingERP',
         description: 'نظام إدارة متاجر أدوات الصيد والرحلات البحرية Offline-First',
-        theme_color: '#0f3d5e',
-        background_color: '#f1f5f9',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
         dir: 'rtl',
         lang: 'ar',
-        start_url: '/',
+        start_url: './',
+        scope: './',
         icons: [
           {
-            src: '/icon.svg',
+            src: './icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
