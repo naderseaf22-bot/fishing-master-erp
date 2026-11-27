@@ -9,6 +9,24 @@
     color: #f5f5f5;
   }
 
+  body {
+    @apply bg-black text-white antialiased;
+  }
+
+  /* أي عنصر بخلفية بيضاء صريحة يأخذ خطاً داكناً تلقائياً */
+  .bg-white {
+    @apply text-neutral-900;
+  }
+
+  /* أي عنصر بخلفية سوداء أو داكنة جداً يأخذ خطاً فاتحاً تلقائياً */
+  .bg-black,
+  .bg-neutral-950,
+  .bg-neutral-900,
+  .bg-slate-950,
+  .bg-slate-900 {
+    @apply text-white;
+  }
+
   input,
   select,
   textarea {
