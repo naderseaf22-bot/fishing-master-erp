@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    direction: rtl;
+    color-scheme: dark;
+    font-family: 'Segoe UI', Tahoma, 'Cairo', 'Tajawal', Arial, sans-serif;
+    background-color: #000000;
+    color: #f5f5f5;
+  }
+
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+}
+
+@page {
+  margin: 6mm;
+}
+
+@media print {
+  html,
+  body {
+    color-scheme: light !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border-color: #cbd5e1 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+  .print-area * {
+    color: #000000 !important;
+    border-color: #cbd5e1 !important;
+  }
+  .print-area thead {
+    background: #f1f5f9 !important;
+  }
+  .barcode-label {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
