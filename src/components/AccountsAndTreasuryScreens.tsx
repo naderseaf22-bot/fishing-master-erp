@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowLeftRight, Edit3, PlusCircle, Search, Wallet } from 'lucide-react';
-import { Account, TREASURIES, TreasuryVoucher, db } from '../db';
+import { Account, TreasuryVoucher, db } from '../db';
+import { useTreasuries } from '../useCatalog';
 import {
   computeTreasuryBalances,
   createVoucher,
@@ -351,7 +352,11 @@ export function TreasuryScreen({
   const vouchers =
     useLiveQuery(() => db.vouchers.orderBy('date').reverse().toArray(), []) ?? [];
   const accounts = useLiveQuery(() => db.accounts.toArray(), []) ?? [];
-  const balances = useMemo(() => computeTreasuryBalances(vouchers), [vouchers]);
+  const treasuries = useTreasuries(false);
+  const balances = useMemo(
+    () => computeTreasuryBalances(vouchers, treasuries),
+    [vouchers, treasuries]
+  );
 
   const [fromTr, setFromTr] = useState('MAIN_TR');
   const [toTr, setToTr] = useState('BANK_TR');
@@ -393,12 +398,12 @@ export function TreasuryScreen({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="الإجمالي الكلي للخزائن" value={formatCurrency(balances.total)} tone="sky" />
-        {TREASURIES.map((t) => (
+        {treasuries.map((t) => (
           <StatCard
             key={t.id}
             label={t.name}
             value={formatCurrency(balances[t.id] ?? 0)}
-            tone="emerald"
+            tone={t.isActive ? 'emerald' : 'slate'}
           />
         ))}
       </div>
@@ -414,7 +419,7 @@ export function TreasuryScreen({
             onChange={(e) => setFromTr(e.target.value)}
             className={darkInput}
           >
-            {TREASURIES.map((t) => (
+            {treasuries.filter((t) => t.isActive).map((t) => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
@@ -426,7 +431,7 @@ export function TreasuryScreen({
             onChange={(e) => setToTr(e.target.value)}
             className={darkInput}
           >
-            {TREASURIES.map((t) => (
+            {treasuries.filter((t) => t.isActive).map((t) => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
@@ -529,6 +534,7 @@ export function VoucherFormScreen({
 }) {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []) ?? [];
   const trips = useLiveQuery(() => db.trips.toArray(), []) ?? [];
+  const treasuries = useTreasuries(true);
   const vouchers =
     useLiveQuery(
       () => db.vouchers.filter((v) => v.type === mode).reverse().toArray(),
@@ -588,7 +594,7 @@ export function VoucherFormScreen({
             onChange={(e) => setTreasuryId(e.target.value)}
             className={darkInput}
           >
-            {TREASURIES.map((t) => (
+            {treasuries.map((t) => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>

@@ -166,6 +166,59 @@ export interface FacebookCampaign {
   itemIds: string[];
 }
 
+export interface Treasury {
+  id: string;
+  name: string;
+  openingBalance: number;
+  isActive: boolean;
+}
+
+export interface CategoryDef {
+  id: string;
+  name: string;
+}
+
+export interface WarehouseDef {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+const treasuryNameCache = new Map<string, string>(TREASURIES.map((t) => [t.id, t.name]));
+const warehouseNameCache = new Map<string, string>(WAREHOUSES.map((w) => [w.id, w.name]));
+
+let treasuryCatalog: Treasury[] = TREASURIES.map((t) => ({
+  id: t.id,
+  name: t.name,
+  openingBalance: 0,
+  isActive: true,
+}));
+
+export function syncTreasuryCatalog(rows: Treasury[]) {
+  if (!rows.length) return;
+  treasuryCatalog = rows;
+  for (const t of rows) treasuryNameCache.set(t.id, t.name);
+}
+
+export function syncWarehouseCatalog(rows: WarehouseDef[]) {
+  if (!rows.length) return;
+  for (const w of rows) warehouseNameCache.set(w.id, w.name);
+}
+
+export function getTreasuryCatalog(): Treasury[] {
+  return treasuryCatalog;
+}
+
+export function lookupTreasuryName(id?: string): string {
+  if (!id) return '—';
+  return treasuryNameCache.get(id) ?? id;
+}
+
+export function lookupWarehouseName(id?: string): string {
+  if (!id) return '—';
+  return warehouseNameCache.get(id) ?? id;
+}
+
 export interface FacebookLog {
   id: string;
   date: string;
@@ -189,6 +242,9 @@ class FishingMasterERP extends Dexie {
   syncQueue!: Table<SyncQueueItem>;
   fbCampaigns!: Table<FacebookCampaign>;
   fbLogs!: Table<FacebookLog>;
+  treasuries!: Table<Treasury>;
+  categories!: Table<CategoryDef>;
+  warehouses!: Table<WarehouseDef>;
 
   constructor() {
     super('FishingMasterERP_Complete_DB');
@@ -206,6 +262,13 @@ class FishingMasterERP extends Dexie {
       fbCampaigns: 'id, name, isActive, lastPostedAt',
       fbLogs: 'id, date, type, campaignId, itemId',
     });
+    this.version(3).stores({
+      treasuries: 'id, name, isActive',
+    });
+    this.version(4).stores({
+      categories: 'id, name',
+      warehouses: 'id, name, isActive',
+    });
   }
 }
 
@@ -217,9 +280,51 @@ function isoDaysOffset(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+async function ensureCatalog() {
+  if ((await db.treasuries.count()) === 0) {
+    await db.treasuries.bulkPut(
+      TREASURIES.map((t) => ({
+        id: t.id,
+        name: t.name,
+        openingBalance: 0,
+        isActive: true,
+      }))
+    );
+  }
+
+  if ((await db.warehouses.count()) === 0) {
+    await db.warehouses.bulkPut(
+      WAREHOUSES.map((w) => ({
+        id: w.id,
+        name: w.name,
+        isActive: true,
+      }))
+    );
+  }
+
+  if ((await db.categories.count()) === 0) {
+    const items = await db.items.toArray();
+    const names = Array.from(new Set(items.map((it) => it.category.trim()).filter(Boolean)));
+    const fallback = ['خيوط', 'ماكينات', 'قصبات', 'سنار', 'طعوم'];
+    const source = names.length > 0 ? names : fallback;
+    await db.categories.bulkPut(
+      source.map((name) => ({
+        id: `CAT-${name.replace(/\s+/g, '-').slice(0, 24)}`,
+        name,
+      }))
+    );
+  }
+
+  syncTreasuryCatalog(await db.treasuries.toArray());
+  syncWarehouseCatalog(await db.warehouses.toArray());
+}
+
 export async function seedInitialData() {
   const count = await db.items.count();
-  if (count > 0) return;
+  if (count > 0) {
+    await ensureCatalog();
+    return;
+  }
 
   const today = isoDaysOffset(0);
   const yesterday = isoDaysOffset(-1);
@@ -421,7 +526,7 @@ export async function seedInitialData() {
 
   await db.transaction(
     'rw',
-    [db.items, db.stocks, db.accounts, db.vouchers, db.invoices, db.trips],
+    [db.items, db.stocks, db.accounts, db.vouchers, db.invoices, db.trips, db.treasuries],
     async () => {
       await db.items.bulkPut(initialItems);
 
@@ -434,6 +539,17 @@ export async function seedInitialData() {
       await db.vouchers.bulkPut(initialVouchers);
       await db.invoices.bulkPut(initialInvoices);
       await db.trips.bulkPut(initialTrips);
+
+      // Seed default treasuries into the new table
+      const defaultTreasuries: Treasury[] = TREASURIES.map((t) => ({
+        id: t.id,
+        name: t.name,
+        openingBalance: 0,
+        isActive: true,
+      }));
+      await db.treasuries.bulkPut(defaultTreasuries);
     }
   );
+
+  await ensureCatalog();
 }

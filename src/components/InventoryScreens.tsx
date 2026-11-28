@@ -13,7 +13,8 @@ import {
   ShoppingBag,
   Trash2,
 } from 'lucide-react';
-import { Item, WAREHOUSES, db } from '../db';
+import { Item, db } from '../db';
+import { useWarehouses } from '../useCatalog';
 import {
   generateNextItemCodes,
   getWarehouseName,
@@ -532,7 +533,8 @@ export function GoodsOverviewScreen({
 }) {
   const items = useLiveQuery(() => db.items.toArray(), []) ?? [];
   const stocks = useLiveQuery(() => db.stocks.toArray(), []) ?? [];
-  const [whFilter, setWhFilter] = useState<'ALL' | 'MAIN_WH' | 'SUB_WH'>('ALL');
+  const warehouses = useWarehouses(true);
+  const [whFilter, setWhFilter] = useState('ALL');
   const [stockTab, setStockTab] = useState<'ALL' | 'OUT_OF_STOCK' | 'LOW_STOCK'>('ALL');
 
   const stockMap = useMemo(() => {
@@ -546,10 +548,12 @@ export function GoodsOverviewScreen({
       const qMain = stockMap.get(`MAIN_WH_${it.id}`) ?? 0;
       const qSub = stockMap.get(`SUB_WH_${it.id}`) ?? 0;
       const qty =
-        whFilter === 'ALL' ? qMain + qSub : whFilter === 'MAIN_WH' ? qMain : qSub;
+        whFilter === 'ALL'
+          ? warehouses.reduce((sum, w) => sum + (stockMap.get(`${w.id}_${it.id}`) ?? 0), 0)
+          : stockMap.get(`${whFilter}_${it.id}`) ?? 0;
       return { item: it, qMain, qSub, qty };
     });
-  }, [items, stockMap, whFilter]);
+  }, [items, stockMap, whFilter, warehouses]);
 
   const totals = useMemo(() => {
     let costValue = 0;
@@ -582,11 +586,11 @@ export function GoodsOverviewScreen({
           <div className="flex gap-2">
             <select
               value={whFilter}
-              onChange={(e) => setWhFilter(e.target.value as typeof whFilter)}
+              onChange={(e) => setWhFilter(e.target.value)}
               className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 no-print"
             >
               <option value="ALL">كل المخازن</option>
-              {WAREHOUSES.map((w) => (
+              {warehouses.map((w) => (
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
             </select>
@@ -732,6 +736,7 @@ export function StockTransferScreen({
       () => db.stockLogs.filter((l) => l.type === 'TRANSFER').reverse().toArray(),
       []
     ) ?? [];
+  const warehouses = useWarehouses(true);
 
   const [fromWh, setFromWh] = useState('MAIN_WH');
   const [toWh, setToWh] = useState('SUB_WH');
@@ -780,7 +785,7 @@ export function StockTransferScreen({
             onChange={(e) => setFromWh(e.target.value)}
             className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white"
           >
-            {WAREHOUSES.map((w) => (
+            {warehouses.map((w) => (
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
           </select>
@@ -792,7 +797,7 @@ export function StockTransferScreen({
             onChange={(e) => setToWh(e.target.value)}
             className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white"
           >
-            {WAREHOUSES.map((w) => (
+            {warehouses.map((w) => (
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
           </select>
@@ -891,6 +896,7 @@ export function StockCountAndSettlementScreen({
       () => db.stockLogs.filter((l) => l.type === 'COUNT_SETTLEMENT').reverse().toArray(),
       []
     ) ?? [];
+  const warehouses = useWarehouses(true);
 
   const [warehouseId, setWarehouseId] = useState('MAIN_WH');
   const [actualInputs, setActualInputs] = useState<Record<string, string>>({});
@@ -934,7 +940,7 @@ export function StockCountAndSettlementScreen({
               onChange={(e) => setWarehouseId(e.target.value)}
               className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-white no-print"
             >
-              {WAREHOUSES.map((w) => (
+              {warehouses.map((w) => (
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
             </select>

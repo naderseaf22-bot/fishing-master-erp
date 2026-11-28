@@ -6,11 +6,13 @@ import {
   Item,
   StockAdjustmentLog,
   SyncQueueItem,
-  TREASURIES,
+  Treasury,
   TreasuryVoucher,
-  WAREHOUSES,
   WarehouseStock,
   db,
+  getTreasuryCatalog,
+  lookupTreasuryName,
+  lookupWarehouseName,
 } from './db';
 
 function round2(n: number): number {
@@ -27,11 +29,11 @@ export function nowIso(): string {
 }
 
 export function getWarehouseName(id?: string): string {
-  return WAREHOUSES.find((w) => w.id === id)?.name ?? id ?? '—';
+  return lookupWarehouseName(id);
 }
 
 export function getTreasuryName(id?: string): string {
-  return TREASURIES.find((t) => t.id === id)?.name ?? id ?? '—';
+  return lookupTreasuryName(id);
 }
 
 async function enqueueSync(
@@ -76,13 +78,14 @@ async function adjustWarehouseStock(
 }
 
 export function computeTreasuryBalances(
-  vouchers: TreasuryVoucher[]
+  vouchers: TreasuryVoucher[],
+  treasuries?: Array<Pick<Treasury, 'id'> & { openingBalance?: number }>
 ): Record<string, number> & { total: number } {
-  const balances: Record<string, number> = {
-    MAIN_TR: 0,
-    BANK_TR: 0,
-    SUB_TR: 0,
-  };
+  const source = treasuries && treasuries.length > 0 ? treasuries : getTreasuryCatalog();
+  const balances: Record<string, number> = {};
+  for (const t of source) {
+    balances[t.id] = round2(t.openingBalance ?? 0);
+  }
 
   for (const v of vouchers) {
     if (v.type === 'RECEIPT') {

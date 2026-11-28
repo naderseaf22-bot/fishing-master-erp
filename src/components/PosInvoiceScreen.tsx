@@ -9,13 +9,8 @@ import {
   ShoppingCart,
   Trash2,
 } from 'lucide-react';
-import {
-  Invoice,
-  Item,
-  TREASURIES,
-  WAREHOUSES,
-  db,
-} from '../db';
+import { Invoice, Item, db } from '../db';
+import { useTreasuries, useWarehouses } from '../useCatalog';
 import { createInvoice, getWarehouseName } from '../erpEngine';
 import {
   INVOICE_TYPE_LABELS,
@@ -44,6 +39,8 @@ export function PosInvoiceScreen({
   const stocks = useLiveQuery(() => db.stocks.toArray(), []) ?? [];
   const accounts = useLiveQuery(() => db.accounts.toArray(), []) ?? [];
   const trips = useLiveQuery(() => db.trips.toArray(), []) ?? [];
+  const treasuries = useTreasuries(true);
+  const warehouses = useWarehouses(true);
 
   const isPurchaseSide = mode === 'PURCHASE' || mode === 'PURCHASE_RETURN';
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -421,7 +418,7 @@ export function PosInvoiceScreen({
               onChange={(e) => setWarehouseId(e.target.value)}
               className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2.5 py-2 text-sm text-neutral-100"
             >
-              {WAREHOUSES.map((w) => (
+              {warehouses.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.name}
                 </option>
@@ -437,7 +434,7 @@ export function PosInvoiceScreen({
               onChange={(e) => setTreasuryId(e.target.value)}
               className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2.5 py-2 text-sm text-neutral-100"
             >
-              {TREASURIES.map((t) => (
+              {treasuries.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>

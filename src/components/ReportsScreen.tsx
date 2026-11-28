@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { WAREHOUSES, db } from '../db';
+import { db } from '../db';
+import { useTreasuries, useWarehouses } from '../useCatalog';
 import {
   computeTreasuryBalances,
   computeTripFinancials,
@@ -87,6 +88,8 @@ export function ReportsScreen({
   const vouchers = useLiveQuery(() => db.vouchers.toArray(), []) ?? [];
   const stockLogs = useLiveQuery(() => db.stockLogs.toArray(), []) ?? [];
   const trips = useLiveQuery(() => db.trips.toArray(), []) ?? [];
+  const treasuries = useTreasuries(false);
+  const warehouses = useWarehouses(true);
 
   const accountMap = useMemo(
     () => new Map(accounts.map((a) => [a.id, a])),
@@ -221,8 +224,8 @@ export function ReportsScreen({
   }, [filteredInvoices]);
 
   const treasuryBalances = useMemo(
-    () => computeTreasuryBalances(vouchers),
-    [vouchers]
+    () => computeTreasuryBalances(vouchers, treasuries),
+    [vouchers, treasuries]
   );
 
   // P&L summary
@@ -598,9 +601,14 @@ export function ReportsScreen({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <StatCard label="إجمالي الخزائن" value={formatCurrency(treasuryBalances.total)} tone="sky" />
-                <StatCard label="الخزينة الرئيسية" value={formatCurrency(treasuryBalances.MAIN_TR ?? 0)} tone="emerald" />
-                <StatCard label="البنك / الشبكة" value={formatCurrency(treasuryBalances.BANK_TR ?? 0)} tone="emerald" />
-                <StatCard label="عهدة الرحلات" value={formatCurrency(treasuryBalances.SUB_TR ?? 0)} tone="amber" />
+                {treasuries.map((t) => (
+                  <StatCard
+                    key={t.id}
+                    label={t.name}
+                    value={formatCurrency(treasuryBalances[t.id] ?? 0)}
+                    tone={t.isActive ? 'emerald' : 'amber'}
+                  />
+                ))}
               </div>
               <table className="w-full text-right text-sm">
                 <thead className="bg-neutral-950 text-xs text-neutral-400">
@@ -977,7 +985,7 @@ export function ReportsScreen({
                   onChange={(e) => setSelectedWarehouseId(e.target.value)}
                   className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100"
                 >
-                  {WAREHOUSES.map((w) => (
+                  {warehouses.map((w) => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
                 </select>

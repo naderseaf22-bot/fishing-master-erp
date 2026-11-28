@@ -12,7 +12,8 @@ import {
   UserPlus,
   X,
 } from 'lucide-react';
-import { FishingTrip, TREASURIES, WAREHOUSES, db } from '../db';
+import { FishingTrip, db } from '../db';
+import { useTreasuries, useWarehouses } from '../useCatalog';
 import {
   addTripExpense,
   addTripMember,
@@ -49,6 +50,8 @@ export function TripsScreen({
   const accounts = useLiveQuery(() => db.accounts.toArray(), []) ?? [];
   const items = useLiveQuery(() => db.items.toArray(), []) ?? [];
   const stocks = useLiveQuery(() => db.stocks.toArray(), []) ?? [];
+  const treasuries = useTreasuries(true);
+  const warehouses = useWarehouses(true);
 
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const activeTrip =
@@ -844,7 +847,7 @@ export function TripsScreen({
                   }
                   className="rounded-lg border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-sm text-neutral-100"
                 >
-                  {WAREHOUSES.map((w) => (
+                  {warehouses.map((w) => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
                 </select>
@@ -978,7 +981,7 @@ export function TripsScreen({
                     }
                     className="w-28 rounded-lg border border-neutral-700 bg-neutral-900 px-1.5 py-1.5 text-xs text-neutral-100"
                   >
-                    {TREASURIES.map((t) => (
+                    {treasuries.map((t) => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
